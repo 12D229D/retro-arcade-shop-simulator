@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Retro Arcade Shop Simulator - Salón Arcade de los 90</title>
+  
+  <!-- Fuentes modernas y pixel art de Google Fonts según DESIGN.md y AGENTS.md -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Outfit:wght@500;700&family=Press+Start+2P&display=swap" rel="stylesheet">
+  
+  <!-- Estilos retro arcade neón HSL y scanlines CRT -->
+  <link rel="stylesheet" href="./src/style.css">
+</head>
+<body>
+  <!-- Filtro CRT atmosférico -->
+  <div class="crt-overlay" aria-hidden="true"></div>
+
+  <!-- Header & HUD Superior con semántica HTML5 -->
+  <header id="arcade-header">
+    <div class="brand-section">
+      <span class="logo-icon">🕹️</span>
+      <!-- Único H1 semántico del documento -->
+      <h1>Retro Arcade Shop Simulator</h1>
+    </div>
+
+    <div class="hud-meters">
+      <div class="meter-card" title="Efectivo en caja registradora">
+        <span class="label">Caja:</span>
+        <span id="hud-cash" class="value cash">$500.00</span>
+      </div>
+
+      <div class="meter-card" title="Fichas de 25 centavos disponibles">
+        <span class="label">Fichas:</span>
+        <span id="hud-tokens" class="value">100</span>
+      </div>
+
+      <div class="meter-card" title="Precio actual por ficha">
+        <span class="label">P. Ficha:</span>
+        <span id="hud-token-price" class="value">$1.00</span>
+      </div>
+
+      <div class="meter-card" title="Reputación del salón arcade">
+        <span class="label">Reputación:</span>
+        <span id="hud-rep" class="value rep">★ 3.5</span>
+      </div>
+
+      <div class="meter-card" title="Reloj de jornada (10:00 - 22:00)">
+        <span class="label">Hora:</span>
+        <span id="hud-clock" class="value">DÍA 1 - 10:00</span>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <button id="btn-pricing-modal" class="btn-retro" title="Ajustar precios de fichas">
+        🪙 Precios
+      </button>
+      <button id="btn-sound-toggle" class="btn-retro" title="Activar/Silenciar Chiptune">
+        <span id="sound-icon">🔊</span> Audio
+      </button>
+    </div>
+  </header>
+
+  <!-- Viewport Principal de Juego Isométrico -->
+  <main id="main-viewport">
+    <div id="canvas-container">
+      <canvas id="iso-canvas"></canvas>
+
+      <!-- Banner Flotante de Modo Colocación -->
+      <div id="editor-banner">
+        <span id="editor-banner-text">Haz clic en el suelo para colocar la máquina.</span>
+        <button id="btn-cancel-placement" class="btn-retro danger small">Cancelar</button>
+      </div>
+
+      <!-- Inspector Flotante de Máquina/Mueble -->
+      <aside id="object-inspector" aria-label="Inspector de máquina">
+        <div class="inspector-header">
+          <h3 id="inspect-title">Neon Cyber Snake</h3>
+        </div>
+        <div class="inspector-field">
+          <span>Categoría:</span>
+          <strong id="inspect-category">ARCADE</strong>
+        </div>
+        <div class="inspector-field">
+          <span>Estado Físico:</span>
+          <strong id="inspect-condition">95%</strong>
+        </div>
+        <div class="inspector-field">
+          <span>Operatividad:</span>
+          <strong id="inspect-status">🟢 Operativa</strong>
+        </div>
+        <div class="inspector-field">
+          <span>Fichas Recaudadas:</span>
+          <strong id="inspect-tokens">14</strong>
+        </div>
+
+        <div class="inspector-actions">
+          <button id="btn-inspect-play" class="btn-retro accent small">🕹️ JUGAR</button>
+          <button id="btn-inspect-repair" class="btn-retro small">🔧 Reparar</button>
+          <button id="btn-inspect-sell" class="btn-retro danger small">💸 Vender</button>
+        </div>
+      </aside>
+
+      <!-- Cajón de Catálogo de Muebles y Máquinas -->
+      <nav id="catalog-drawer" aria-label="Catálogo de compra de máquinas">
+        <!-- Rellenado dinámicamente desde catalog.json -->
+      </nav>
+    </div>
+  </main>
+
+  <!-- Modal de Minijuego Arcade Ficticio (Jugable) -->
+  <div id="minigame-modal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="minigame-title">🕹️ Arcade Minigame</h2>
+        <button class="modal-close" aria-label="Cerrar minijuego">&times;</button>
+      </div>
+      <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--neon-cyan);">
+        <span>Usa FLECHAS o WASD para jugar</span>
+        <span id="minigame-highscore" style="font-family: var(--font-retro); color: var(--neon-yellow);">RÉCORD: 000</span>
+      </div>
+      <canvas id="minigame-canvas" width="460" height="340"></canvas>
+    </div>
+  </div>
+
+  <!-- Modal de Configuración de Precios -->
+  <div id="pricing-modal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>🪙 Configuración de Fichas</h2>
+        <button class="modal-close" aria-label="Cerrar modal">&times;</button>
+      </div>
+      <p style="font-size: 13px; color: var(--text-muted);">
+        Ajusta el precio de venta de cada ficha de 25¢. Precios muy altos ahuyentarán a los clientes; precios económicos atraerán multitudes pero reducirán tus márgenes.
+      </p>
+      <div class="price-slider-group">
+        <label for="token-price-slider" style="font-size: 13px;">Precio por Ficha:</label>
+        <input type="range" id="token-price-slider" min="0.25" max="3.00" step="0.25" value="1.00">
+        <span id="token-price-display" style="font-family: var(--font-retro); color: var(--neon-cyan);">$1.00</span>
+      </div>
+      <button class="btn-retro modal-close" style="align-self: flex-end;">Guardar Cambios</button>
+    </div>
+  </div>
+
+  <!-- Modal de Balance Financiero Diario (Cierre de Jornada a las 22:00) -->
+  <div id="daily-report-modal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>📊 Balance del Día <span id="report-day-num">1</span></h2>
+      </div>
+      <p style="font-size: 12px; color: var(--neon-cyan);">
+        El salón ha cerrado sus puertas a las 22:00. Este es el resumen financiero registrado en SQLite:
+      </p>
+      <table class="balance-table">
+        <tbody>
+          <tr>
+            <td>Fichas Vendidas:</td>
+            <td id="report-tokens">0</td>
+          </tr>
+          <tr>
+            <td>Ingresos por Fichas:</td>
+            <td id="report-gross">$0.00</td>
+          </tr>
+          <tr>
+            <td>Ingresos por Snacks / Bebidas:</td>
+            <td id="report-snacks">$0.00</td>
+          </tr>
+          <tr>
+            <td>Coste de Electricidad:</td>
+            <td id="report-power">-$0.00</td>
+          </tr>
+          <tr>
+            <td>Mantenimiento y Averías:</td>
+            <td id="report-repairs">-$0.00</td>
+          </tr>
+          <tr style="border-top: 2px solid var(--border-glass); font-weight: bold;">
+            <td>BENEFICIO NETO:</td>
+            <td id="report-profit" class="profit-positive">$0.00</td>
+          </tr>
+          <tr>
+            <td>Clientes Atendidos:</td>
+            <td id="report-customers">0</td>
+          </tr>
+          <tr>
+            <td>Reputación al Cierre:</td>
+            <td id="report-rep">★ 3.5</td>
+          </tr>
+        </tbody>
+      </table>
+      <button id="btn-next-day" class="btn-retro accent" style="align-self: center; margin-top: 8px;">
+        🌅 Abrir Día Siguiente (10:00 AM)
+      </button>
+    </div>
+  </div>
+
+  <!-- Script principal como ES Module -->
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
